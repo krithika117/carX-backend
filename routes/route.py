@@ -50,7 +50,6 @@ def signup():
         cursor.execute("SELECT * FROM accounts WHERE mail = (%s)", (mail))
         infolist = cursor.fetchall()
         if len(infolist) < 1:
-
             cursor.execute(
                 "INSERT INTO accounts(name, mail, password, contact) VALUES (%s,%s,%s,%s)", (name, mail, password, contact))
             resp = jsonify({'response': 'success'})
@@ -77,8 +76,21 @@ def showservice():
         return jsonify({'response': infolist})
 
 
-@app.route("/select/req", methods=["POST", "GET"])
-def select_data():
+@app.route("/show/places", methods=["POST", "GET"])
+def showplaces():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    if request.method == "POST":
+        cursor.execute("SELECT * FROM places")
+        infolist = cursor.fetchall()
+        print(infolist)
+        print('all list')
+        return jsonify({'response': infolist})
+
+
+@app.route("/get/req", methods=["POST", "GET"])
+def get_req():
     conn = mysql.connect()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
     _json = request.json
@@ -142,6 +154,24 @@ def add_service():
     if request.method == "POST":
         cursor.execute(
             "INSERT INTO services(serviceName) VALUES (%s)", (servicename))
+        resp = jsonify({'response': 'success'})
+        conn.commit()
+        print('Inserted')
+        cursor.close()
+        conn.close()
+        return resp
+
+
+@app.route("/add/places", methods=["POST", "GET"])
+def add_place():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    location = _json['location']
+    address = _json['address']
+    if request.method == "POST":
+        cursor.execute(
+            "INSERT INTO places(location, address) VALUES (%s,%s)", (location, address))
         resp = jsonify({'response': 'success'})
         conn.commit()
         print('Inserted')
