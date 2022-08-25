@@ -89,8 +89,8 @@ def showplaces():
         return jsonify({'response': infolist})
 
 
-@app.route("/get/req", methods=["POST", "GET"])
-def get_req():
+@app.route("/list/requests", methods=["POST", "GET"])
+def list_requests():
     conn = mysql.connect()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
     _json = request.json
@@ -113,6 +113,37 @@ def get_branch():
         print(infolist)
         print('all list')
         return jsonify({'response': infolist})
+
+
+@app.route("/show/associations", methods=["POST", "GET"])
+def asssociations():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    if request.method == "POST":
+        cursor.execute("SELECT * FROM fullbranchdetails")
+        infolist = cursor.fetchall()
+        print(infolist)
+        print('all list')
+        return jsonify({'response': infolist})
+
+
+@app.route("/create/associations", methods=["POST", "GET"])
+def create_asssociations():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    serviceId = _json['serviceId']
+    placeId = _json['placeId']
+    if request.method == "POST":
+        cursor.execute("INSERT INTO branchdetails(serviceId, placeId) VALUES(%s, %s)",
+                       (serviceId, placeId))
+        resp = jsonify({'response': 'success'})
+        conn.commit()
+        print('Inserted')
+        cursor.close()
+        conn.close()
+        return resp
 
 
 @app.route("/get/services", methods=["POST", "GET"])
@@ -218,6 +249,40 @@ def filter():
         return resp
 
 
+@app.route("/customer/filter", methods=["POST", "GET"])
+def customer_filter():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    mail = _json['mail']
+    if request.method == "POST":
+        cursor.execute(
+            "SELECT * FROM requests WHERE mail = (%s)", (mail))
+        infolist = cursor.fetchall()
+        resp = jsonify({'response': infolist})
+        conn.commit()
+        print(infolist)
+        cursor.close()
+        conn.close()
+        return resp
+
+
+@app.route("/listdata", methods=["POST", "GET"])
+def listdata():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    if request.method == "POST":
+        cursor.execute(
+            "SELECT reqId, name, mail, places.location, time, date, status FROM requests,places WHERE places.placeId = requests.placeId and requests.status='Pending'")
+        infolist = cursor.fetchall()
+        resp = jsonify({'response': infolist})
+        conn.commit()
+        print(infolist)
+        cursor.close()
+        conn.close()
+        return resp
+
+
 @app.route("/availslots", methods=["POST", "GET"])
 def availslots():
     conn = mysql.connect()
@@ -250,7 +315,43 @@ def requests():
     mail = _json['mail']
     if request.method == "POST":
         cursor.execute(
-            "INSERT INTO requests(name, mail, placeId, date, time, status) VALUES (%s, %s,(SELECT placeId FROM places WHERE location = (%s)),%s,%s,0)", (customername, mail, placename, date, slot))
+            "INSERT INTO requests(name, mail, placeId, date, time, status) VALUES (%s, %s,(SELECT placeId FROM places WHERE location = (%s)),%s,%s,'Pending')", (customername, mail, placename, date, slot))
+        resp = jsonify({'response': 'success'})
+        conn.commit()
+        print('Inserted')
+        cursor.close()
+        conn.close()
+        return resp
+
+
+@app.route("/request/denied", methods=["POST", "GET"])
+def deny_requests():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    reqId = _json['reqId']
+
+    if request.method == "POST":
+        cursor.execute(
+            "UPDATE requests SET status = 'Denied' WHERE reqId = (%s)", (reqId))
+        resp = jsonify({'response': 'success'})
+        conn.commit()
+        print('Inserted')
+        cursor.close()
+        conn.close()
+        return resp
+
+
+@app.route("/request/approved", methods=["POST", "GET"])
+def approve_requests():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    reqId = _json['reqId']
+
+    if request.method == "POST":
+        cursor.execute(
+            "UPDATE requests SET status = 'Approved' WHERE reqId = (%s)", (reqId))
         resp = jsonify({'response': 'success'})
         conn.commit()
         print('Inserted')
