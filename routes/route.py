@@ -37,6 +37,25 @@ def login():
     conn.close()
 
 
+@app.route("/login/admin", methods=["POST", "GET"])
+def loginadmin():
+    conn = mysql.connect()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    _json = request.json
+    mail = _json['mail']
+    password = _json['password']
+    key = _json['key']
+    if request.method == "POST":
+        if mail == 'admin@gmail.com' and password == 'administrator' and key == 'radisson':
+            resp = jsonify({'response': 'success'})
+            return resp
+        else:
+            resp = jsonify({'response': 'failure'})
+            return resp
+    cursor.close()
+    conn.close()
+
+
 @app.route("/signup", methods=["POST", "GET"])
 def signup():
     conn = mysql.connect()
@@ -53,6 +72,7 @@ def signup():
             cursor.execute(
                 "INSERT INTO accounts(name, mail, password, contact) VALUES (%s,%s,%s,%s)", (name, mail, password, contact))
             resp = jsonify({'response': 'success'})
+            sendMail(mail)
             conn.commit()
             print('Inserted')
             cursor.close()
@@ -80,9 +100,8 @@ def showservice():
 def showplaces():
     conn = mysql.connect()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
-    _json = request.json
     if request.method == "POST":
-        cursor.execute("SELECT * FROM places")
+        cursor.execute("SELECT placeId, location, address FROM places")
         infolist = cursor.fetchall()
         print(infolist)
         print('all list')
@@ -358,3 +377,40 @@ def approve_requests():
         cursor.close()
         conn.close()
         return resp
+
+# Mail -  send in blue
+
+
+def sendMail(email):
+    print("Sending Mail tp " + email)
+    # print(firstName)
+    # print(email)
+    # print(serviceClubChoice)
+    # print(techClubChoice1)
+    # print(techClubChoice2)
+
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = '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'
+
+ # create an instance of the API class
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+        sib_api_v3_sdk.ApiClient(configuration))
+
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+        to=[{
+            "email": email,
+        }],
+        template_id=1,
+        headers={
+            "X-Mailin-custom": "custom_header_1:custom_value_1|custom_header_2:custom_value_2|custom_header_3:custom_value_3",
+            "charset": "iso-8859-1"
+        }
+    )  # SendSmtpEmail | Values to send a transactional email
+
+    try:
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        pprint(api_response)
+        print('sent')
+    except ApiException as e:
+        print("Exception when calling SMTPApi->send_transac_email: %s\n" % e)
+        print('error')
